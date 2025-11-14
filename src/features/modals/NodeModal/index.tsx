@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import type { ModalProps } from "@mantine/core";
-import { Modal, Stack, Text, ScrollArea, Flex, CloseButton } from "@mantine/core";
+import { Modal, Stack, Text, ScrollArea, Flex, CloseButton, Button, Textarea } from "@mantine/core";
 import { CodeHighlight } from "@mantine/code-highlight";
 import type { NodeData } from "../../../types/graph";
 import useGraph from "../../editor/views/GraphView/stores/useGraph";
@@ -28,38 +28,86 @@ const jsonPathToString = (path?: NodeData["path"]) => {
 
 export const NodeModal = ({ opened, onClose }: ModalProps) => {
   const nodeData = useGraph(state => state.selectedNode);
+  const updateNodeFields = useGraph(state => state.updateNodeFields);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  // load initial content when entering edit mode
+  const startEdit = () => {
+    setDraft(normalizeNodeData(nodeData?.text ?? []));
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    try {
+      const parsed = JSON.parse(draft);
+      updateNodeFields(nodeData!.id, parsed);
+      setIsEditing(false);
+    } catch (err) {
+      alert("Invalid JSON");
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+  };
 
   return (
     <Modal size="auto" opened={opened} onClose={onClose} centered withCloseButton={false}>
       <Stack pb="sm" gap="sm">
         <Stack gap="xs">
           <Flex justify="space-between" align="center">
-            <Text fz="xs" fw={500}>
-              Content
-            </Text>
+            <Text fz="xs" fw={500}>Content</Text>
             <CloseButton onClick={onClose} />
           </Flex>
-          <ScrollArea.Autosize mah={250} maw={600}>
-            <CodeHighlight
-              code={normalizeNodeData(nodeData?.text ?? [])}
-              miw={350}
-              maw={600}
-              language="json"
-              withCopyButton
-            />
-          </ScrollArea.Autosize>
+
+          {!isEditing && (
+            <>
+              <ScrollArea.Autosize mah={250} maw={600}>
+                <CodeHighlight
+                  code={normalizeNodeData(nodeData?.text ?? [])}
+                  miw={350}
+                  maw={600}
+                  language="json"
+                  withCopyButton
+                />
+              </ScrollArea.Autosize>
+              <Button size="xs" variant="light" onClick={startEdit}>
+                Edit
+              </Button>
+            </>
+          )}
+
+          {isEditing && (
+            <>
+              <Textarea
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                minRows={8}
+                miw={350}
+                maw={600}
+                autosize
+              />
+              <Flex gap="sm">
+                <Button size="xs" onClick={handleSave}>
+                  Save
+                </Button>
+                <Button size="xs" variant="default" onClick={handleCancel}>
+                  Cancel
+                </Button>
+              </Flex>
+            </>
+          )}
         </Stack>
-        <Text fz="xs" fw={500}>
-          JSON Path
-        </Text>
+
+        <Text fz="xs" fw={500}>JSON Path</Text>
         <ScrollArea.Autosize maw={600}>
           <CodeHighlight
             code={jsonPathToString(nodeData?.path)}
             miw={350}
             mah={250}
             language="json"
-            copyLabel="Copy to clipboard"
-            copiedLabel="Copied to clipboard"
             withCopyButton
           />
         </ScrollArea.Autosize>

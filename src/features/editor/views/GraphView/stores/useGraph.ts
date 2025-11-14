@@ -101,6 +101,46 @@ const useGraph = create<Graph & GraphActions>((set, get) => ({
   },
   toggleFullscreen: fullscreen => set({ fullscreen }),
   setViewPort: viewPort => set({ viewPort }),
+
+  updateNodeValue: (id, newValue) =>
+    set(state => {
+      const updatedNodes = state.nodes.map(node => {
+        if (node.id !== id) return node;
+  
+        // Update only the text value
+        const newText = [...node.text];
+        if (newText[0]) newText[0].value = newValue;
+  
+        return { ...node, text: newText };
+      });
+  
+      return {
+        ...state,
+        nodes: updatedNodes,
+        selectedNode: updatedNodes.find(n => n.id === state.selectedNode?.id),
+      };
+    }),
+    updateNodeFields: (id, newFields) =>
+      set(state => {
+        const updatedNodes = state.nodes.map(node => {
+          if (node.id !== id) return node;
+    
+          const newText = node.text.map(row => {
+            if (row.key && newFields[row.key] !== undefined) {
+              return { ...row, value: newFields[row.key] };
+            }
+            return row;
+          });
+    
+          return { ...node, text: newText };
+        });
+    
+        return {
+          ...state,
+          nodes: updatedNodes,
+          selectedNode: updatedNodes.find(n => n.id === state.selectedNode?.id),
+        };
+      }),
 }));
 
 export default useGraph;
